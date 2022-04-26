@@ -1,0 +1,45 @@
+---
+- hosts: servers
+  become: true #become will give route prov to all the next devops106_terraform_mrasuli_rt_assoc_public_webserver_tf
+
+  tasks:
+    - name: install aptitude using apt
+      apt: name=aptitude state=latest update_cache=yes force_apt_get=yes
+
+    - name: installing all required packages
+      apt: name={{ item }} state=latest update_cache=yes #this is telling apt to take items one by one and isntall them, like a forloop
+      loop: ['apt-transport-https', 'ca-certificates', 'curl', 'gnupg', 'lsb-release', 'python3-pip', 'virtualenv', 'python3-setuptools']
+    - name: adding the GPG keyr
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: adding docker repo
+      apt_repository:
+        repo: deb https://download.docker.com/linux/ubuntu focal stable
+        state: present
+
+    - name: installing docker
+      apt: name={{ item }} state=latest update_cache=yes
+      loop: ['docker-ce', 'docker-ce-cli', 'containerd.io']
+
+    - name: installing python library for docker
+      pip:
+        name: docker
+
+    - name: adding the curret user to docker group
+      user:
+        name: ubuntu
+        groups: docker
+        append: yes
+
+    - name: running a container
+      docker_container:
+        name: hello_world_container
+        image: hello-world
+        state: started
+        container_default_behavior: compatibility
+        published_ports:
+          - "8080:8080"
+        volumes:
+          - /home/ubuntu/log:/log
